@@ -2,8 +2,6 @@ name: CI Pipeline with Hadolint (all Dockerfiles)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 13 * * 4' # Every Thursday at 13:00 UTC
   push:
     branches:
       - main
@@ -53,5 +51,4 @@ jobs:
         with:
           name: hadolint-sarif-report
           path: hadolint-report.sarif
-          token: ${{ secrets.GITHUB_TOKEN }}
           retention-days: 7
