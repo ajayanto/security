@@ -41,7 +41,6 @@ jobs:
           dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
           output-file: hadolint-report.sarif
           format: "sarif"
-          token: ${{ secrets.GITHUB_TOKEN }}
           failure-threshold: "info"
         continue-on-error: true
 
