@@ -57,20 +57,20 @@ jobs:
         with:
           dockerfile: ${{ matrix.dockerfile }}
           format: sarif
-          output-file: hadolint-report-${{ matrix.dockerfile }}.sarif
+          output-file: hadolint-report.sarif
 
       - name: Upload SARIF file as artifact
         uses: actions/upload-artifact@v4
         with:
           name: hadolint-sarif-report-${{ matrix.dockerfile }}
-          path: hadolint-report-${{ matrix.dockerfile }}.sarif
+          path: hadolint-report.sarif
 
       - name: Upload SARIF report to GitHub Security
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const sarif = fs.readFileSync(`hadolint-report-${process.env['MATRIX_DOCKERFILE'] || process.env['matrix_dockerfile'] || '${{ matrix.dockerfile }}'}.sarif`, 'utf8');
+            const sarif = fs.readFileSync(`hadolint-report.sarif`, 'utf8');
             await github.rest.codeScanning.uploadSarif({
               owner: context.repo.owner,
               repo: context.repo.repo,
