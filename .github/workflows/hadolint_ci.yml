@@ -62,7 +62,7 @@ jobs:
       - name: Upload SARIF file as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hadolint-sarif-report-${{ matrix.dockerfile }}
+          name: hadolint-sarif-report-${{ matrix.dockerfile }} | replace('/', '_') | replace('.', '_')
           path: hadolint-report.sarif
 
       - name: Upload SARIF report to GitHub Security
