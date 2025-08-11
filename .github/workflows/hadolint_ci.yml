@@ -20,34 +20,31 @@ permissions:
   pull-requests: write
   actions: write
 
+
 jobs:
-  hadolint:
+  hadolint-sarif-report:
+    name: Generate and Upload SARIF Report
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Find all Dockerfiles
-        id: find-dockerfiles
+      - name: Install Hadolint
         run: |
-          # Use find to locate all Dockerfiles and create a compact JSON array
-          DOCKERFILES=$(find . -name "Dockerfile*" -not -path "./.git/*" -not -path "./vendor/*" | jq -R . | jq -cs .)
-          echo "dockerfiles=${DOCKERFILES}" >> $GITHUB_OUTPUT
-        shell: bash
+          sudo wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          sudo chmod +x /usr/local/bin/hadolint
 
-      - name: Lint all Dockerfiles with Hadolint and generate SARIF report
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
-          output-file: hadolint-report.sarif
-          format: "sarif"
-          failure-threshold: "info"
-        continue-on-error: true
-
-      # Upload the SARIF report as an artifact for later inspection or integration with code scanning tools
-      - name: Upload SARIF report
-        uses: actions/upload-artifact@v4
+      - name: Generate Hadolint SARIF report
+        run: |
+          find . -type f -name "Dockerfile*" -print0 | xargs -0 -r hadolint --format sarif > hadolint-report.sarif || true
+      
+      - name: Upload SARIF file as artifact
+        uses: actions/upload-artifact@v3
         with:
           name: hadolint-sarif-report
           path: hadolint-report.sarif
-          retention-days: 7
+          
+      - name: Upload SARIF report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: hadolint-report.sarif
