@@ -15,9 +15,18 @@ on:
       - 'Dockerfile'
 
 jobs:
-  build-and-scan-main:
-    name: Build and Scan main Dockerfile
+  build-and-scan:
+    name: Build and Scan ${{ matrix.target }} Dockerfile
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: main
+            dockerfile: ./Dockerfile
+            context: .
+            image: ecommerce-main:ci
+            artifact: trivy-main-results
+            output: trivy-main-results.sarif
     permissions:
       contents: read
       security-events: write
@@ -35,7 +44,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f ./Dockerfile -t ecommerce-main:ci .
+          docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} ${{ matrix.context }}
 
       - name: Get short Git commit SHA
         id: vars
@@ -44,17 +53,40 @@ jobs:
       - name: Run Trivy vulnerability scanner on the built image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ecommerce-main:ci
+          image-ref: ${{ matrix.image }}
           format: 'sarif'
-          output: trivy-main-results.sarif
+          output: ${{ matrix.output }}
           severity: 'CRITICAL,HIGH'
           build-args: |
             GIT_SHA=${{ steps.vars.outputs.SHA_SHORT }}
+
       - name: Upload Trivy scan results as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-main-results
-          path: trivy-main-results.sarif
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.output }}
+
+      - name: Upload SARIF report to GitHub Security
+        uses: actions/github-script@v6
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const zlib = require('zlib');
+            const sarif = fs.readFileSync(`${{ matrix.output }}`, 'utf8');
+            const gzippedSarif = zlib.gzipSync(sarif);
+            await github.rest.codeScanning.uploadSarif({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              ref: context.ref,
+              sarif: gzippedSarif.toString('base64'),
+              checkout_uri: `file://${process.env.GITHUB_WORKSPACE}`,
+              tool_name: 'trivy'
+            });
+        env:
+          MATRIX_DOCKERFILE: ${{ matrix.dockerfile }}
+
 
 
   

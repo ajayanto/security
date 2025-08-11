@@ -72,6 +72,7 @@ jobs:
 
       - name: Upload SARIF report to GitHub Security
         uses: actions/github-script@v6
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
