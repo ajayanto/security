@@ -50,10 +50,11 @@ jobs:
           severity: 'CRITICAL,HIGH'
           build-args: |
             GIT_SHA=${{ steps.vars.outputs.SHA_SHORT }}
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy scan results as artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: trivy-main-results.sarif
+          name: trivy-main-results
+          path: trivy-main-results.sarif
 
 
   
