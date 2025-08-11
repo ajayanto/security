@@ -22,24 +22,53 @@ permissions:
 
 
 jobs:
-  hadolint-sarif-report:
-    name: Generate and Upload SARIF Report
+  find-dockerfiles:
     runs-on: ubuntu-latest
+    outputs:
+      dockerfiles_matrix: ${{ steps.set_matrix.outputs.dockerfiles }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Hadolint
+      - name: Find all Dockerfiles and create JSON array
+        id: set_matrix
         run: |
-          sudo wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
-          sudo chmod +x /usr/local/bin/hadolint
+          DOCKERFILES=$(find . -type f -name "Dockerfile*" | jq -R -s -c 'split("\n")[:-1]')
+          echo "dockerfiles=$DOCKERFILES" >> "$GITHUB_OUTPUT"
+          echo $DOCKERFILES
 
-      - name: Generate Hadolint SARIF report
-        run: |
-          find . -type f -name "Dockerfile*" -print0 | xargs -0 -r hadolint --format sarif > hadolint-report.sarif || true
-      
+  hadolint-report:
+    name: Lint ${{ matrix.dockerfile }}
+    needs: find-dockerfiles
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: ${{ fromJson(needs.find-dockerfiles.outputs.dockerfiles_matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Hadolint Action
+        id: hadolint_step
+        continue-on-error: true
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          format: sarif
+          output-file: hadolint-report-${{ matrix.dockerfile }}.sarif
+
       - name: Upload SARIF file as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hadolint-sarif-report
-          path: hadolint-report.sarif
+          name: hadolint-sarif-report-${{ matrix.dockerfile }}
+          path: hadolint-report-${{ matrix.dockerfile }}.sarif
+
+      - name: Upload SARIF report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: hadolint-report-${{ matrix.dockerfile }}.sarif
+
+      
+
