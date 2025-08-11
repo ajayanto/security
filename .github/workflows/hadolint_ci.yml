@@ -45,7 +45,6 @@ jobs:
       fail-fast: false
       matrix:
         dockerfile: ${{ fromJson(needs.find-dockerfiles.outputs.dockerfiles_matrix) }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -59,10 +58,16 @@ jobs:
           format: sarif
           output-file: hadolint-report.sarif
 
+
+      - name: Generate artifact name
+        id: artifact_name
+        run: |
+          ARTIFACT_NAME=$(echo "${{ matrix.dockerfile }}" | sed 's/[^a-zA-Z0-9]/_/g')
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
       - name: Upload SARIF file as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hadolint-sarif-report-${{ matrix.dockerfile }} | replace('/', '_') | replace('.', '_')
+          name: ${{ steps.artifact_name.outputs.artifact_name }}
           path: hadolint-report.sarif
 
       - name: Upload SARIF report to GitHub Security
