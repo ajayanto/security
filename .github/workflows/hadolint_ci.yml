@@ -38,7 +38,7 @@ jobs:
       - name: Lint all Dockerfiles with Hadolint and generate SARIF report
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
+          dockerfile: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
           output-file: hadolint-report.sarif
           format: "sarif"
           failure-threshold: "info"
