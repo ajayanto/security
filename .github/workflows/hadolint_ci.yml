@@ -66,9 +66,22 @@ jobs:
           path: hadolint-report-${{ matrix.dockerfile }}.sarif
 
       - name: Upload SARIF report to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: actions/github-script@v6
         with:
-          sarif_file: hadolint-report-${{ matrix.dockerfile }}.sarif
+          script: |
+            const fs = require('fs');
+            const sarif = fs.readFileSync(`hadolint-report-${process.env['MATRIX_DOCKERFILE'] || process.env['matrix_dockerfile'] || '${{ matrix.dockerfile }}'}.sarif`, 'utf8');
+            await github.rest.codeScanning.uploadSarif({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              ref: context.ref,
+              sarif: Buffer.from(sarif).toString('base64'),
+              checkout_uri: `file://${process.env.GITHUB_WORKSPACE}`,
+              tool_name: 'hadolint'
+            });
+            env:
+              MATRIX_DOCKERFILE: ${{ matrix.dockerfile }}
 
       
 
