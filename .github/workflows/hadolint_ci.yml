@@ -39,12 +39,7 @@ jobs:
           find . -type f -name "Dockerfile*" -print0 | xargs -0 -r hadolint --format sarif > hadolint-report.sarif || true
       
       - name: Upload SARIF file as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hadolint-sarif-report
           path: hadolint-report.sarif
-          
-      - name: Upload SARIF report to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: hadolint-report.sarif
