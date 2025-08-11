@@ -85,8 +85,8 @@ jobs:
               checkout_uri: `file://${process.env.GITHUB_WORKSPACE}`,
               tool_name: 'hadolint'
             });
-            env:
-              MATRIX_DOCKERFILE: ${{ matrix.dockerfile }}
+        env:
+          MATRIX_DOCKERFILE: ${{ matrix.dockerfile }}
 
       
 
